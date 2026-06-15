@@ -1,1 +1,0 @@
-# ioc-threat-intel-checker
