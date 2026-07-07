@@ -1,0 +1,83 @@
+id: apt29
+name: APT29
+aliases:
+  - Cozy Bear
+  - The Dukes
+  - CozyDuke
+  - Midnight Blizzard
+  - NOBELIUM
+  - YTTRIUM
+sectors:
+  - government
+  - defense
+  - think-tank
+  - healthcare
+  - technology
+  - ngo
+geos:
+  - global
+motivation: espionage
+source: MITRE ATT&CK Group G0016
+description: >
+  Russian SVR-attributed threat group. Long-running cyber-espionage operator
+  known for stealthy, custom-malware-driven intrusions including the
+  SolarWinds supply-chain compromise (2020) and sustained collection
+  against diplomatic, defense, and technology targets.
+
+ttps:
+  - technique_id: T1566.001
+    technique_name: Spearphishing Attachment
+    tactic: initial-access
+    tool: weaponized document
+    notes: Initial access via crafted attachments to diplomatic targets
+
+  - technique_id: T1059.001
+    technique_name: PowerShell
+    tactic: execution
+    notes: Heavy use of obfuscated PowerShell loaders (e.g. PoshC2)
+
+  - technique_id: T1059.003
+    technique_name: Windows Command Shell
+    tactic: execution
+
+  - technique_id: T1547.001
+    technique_name: Registry Run Keys / Startup Folder
+    tactic: persistence
+
+  - technique_id: T1053.005
+    technique_name: Scheduled Task
+    tactic: persistence
+
+  - technique_id: T1078.004
+    technique_name: Valid Accounts — Cloud
+    tactic: defense-evasion
+    notes: Abuse of compromised cloud/OAuth tokens (SolarWinds, M365)
+
+  - technique_id: T1003.001
+    technique_name: LSASS Memory
+    tactic: credential-access
+    tool: Mimikatz
+    notes: Credential harvesting on compromised hosts
+
+  - technique_id: T1021.002
+    technique_name: SMB / Windows Admin Shares
+    tactic: lateral-movement
+
+  - technique_id: T1021.006
+    technique_name: Windows Remote Management
+    tactic: lateral-movement
+
+  - technique_id: T1071.001
+    technique_name: Web Protocols
+    tactic: command-and-control
+    tool: HAMMERTOSS / WellMess
+    notes: HTTPS beaconing to attacker-controlled infrastructure
+
+  - technique_id: T1567.002
+    technique_name: Exfiltration to Cloud Storage
+    tactic: exfiltration
+
+  - technique_id: T1486
+    technique_name: Data Encrypted for Impact
+    tactic: impact
+    notes: Rarely used by APT29 — included as a blocked technique example

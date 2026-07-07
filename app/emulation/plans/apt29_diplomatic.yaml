@@ -1,0 +1,108 @@
+id: apt29_diplomatic
+actor_id: apt29
+name: APT29 — Diplomatic Target Emulation (Day 1)
+version: "1.0"
+description: >
+  Compact emulation plan modeled on the MITRE Adversary Emulation Library
+  APT29 Day-1 scenario: phishing-led initial access through credential
+  dumping, lateral movement over SMB/WinRM, and HTTPS C2 with cloud-storage
+  exfil. Tabletop-safe payloads only; substitute engine=atomic or
+  engine=caldera with the corresponding ability_id for live execution.
+
+steps:
+  - order: 1
+    technique_id: T1566.001
+    technique_name: Spearphishing Attachment
+    tactic: initial-access
+    engine: tabletop
+    description: User opens weaponized .docx delivered by email
+    payload:
+      sourcetype: email_proxy
+      event_template: "{ts} EMAIL FROM=attacker@external.com TO=victim@{customer_domain} SUBJECT='Q1 Briefing' ATTACH=Q1_Briefing.docx HASH={sha256}"
+      fields:
+        sha256: "9e6f4f3b6c4e3a5e1b8d3a5f7c6e4a5b6c7e8d9a0b1c2d3e4f5a6b7c8d9e0f1a"
+        customer_domain: "{{customer_domain}}"
+    expected_detections:
+      - "search sourcetype=email_proxy ATTACH=*.docx | iocextract"
+      - "Email attachment hash match against IOC database"
+
+  - order: 2
+    technique_id: T1059.001
+    technique_name: PowerShell
+    tactic: execution
+    engine: tabletop
+    description: Macro spawns obfuscated PowerShell loader
+    payload:
+      sourcetype: WinEventLog:Security
+      event_template: "{ts} EventCode=4688 ParentImage=WINWORD.EXE NewProcessName=powershell.exe CommandLine='-NoP -W Hidden -Enc {b64}' User={victim_user}"
+      fields:
+        b64: "JABjACAAPQAgAE4AZQB3AC0ATwBiAGoAZQBjAHQAIABOAGUAdAAuAFcAZQBiAEMAbABpAGUAbgB0AA=="
+        victim_user: "victim01"
+    expected_detections:
+      - "search EventCode=4688 ParentImage=WINWORD.EXE NewProcessName=powershell.exe"
+      - "PowerShell -EncodedCommand from Office parent"
+
+  - order: 3
+    technique_id: T1547.001
+    technique_name: Registry Run Keys
+    tactic: persistence
+    engine: tabletop
+    payload:
+      sourcetype: WinEventLog:Security
+      event_template: "{ts} EventCode=4657 ObjectName='\\REGISTRY\\USER\\...\\Run' NewValueName=Updater NewValue='C:\\Users\\Public\\u.exe'"
+      fields: {}
+    expected_detections:
+      - "search EventCode=4657 ObjectName=*\\Run* NewValueName=*"
+
+  - order: 4
+    technique_id: T1003.001
+    technique_name: LSASS Memory Dump
+    tactic: credential-access
+    engine: tabletop
+    description: Mimikatz-style LSASS access
+    payload:
+      sourcetype: Sysmon
+      event_template: "{ts} EventID=10 SourceImage=C:\\Tools\\mimi.exe TargetImage=C:\\Windows\\System32\\lsass.exe GrantedAccess=0x1410"
+      fields: {}
+    expected_detections:
+      - "search sourcetype=Sysmon EventID=10 TargetImage=*lsass.exe GrantedAccess=0x1410 OR 0x1010"
+
+  - order: 5
+    technique_id: T1021.002
+    technique_name: SMB / Admin Shares
+    tactic: lateral-movement
+    engine: tabletop
+    payload:
+      sourcetype: WinEventLog:Security
+      event_template: "{ts} EventCode=5145 ShareName=\\\\*\\ADMIN$ AccessMask=0x100081 IpAddress=10.10.10.42 Account={victim_user}"
+      fields:
+        victim_user: "victim01"
+    expected_detections:
+      - "search EventCode=5145 ShareName=*ADMIN$"
+
+  - order: 6
+    technique_id: T1071.001
+    technique_name: Web Protocols (HTTPS C2)
+    tactic: command-and-control
+    engine: tabletop
+    description: Periodic HTTPS beacon to attacker C2
+    payload:
+      sourcetype: pan:traffic
+      event_template: "{ts} src=10.10.10.42 dst=185.220.101.42 dport=443 bytes=2048 url=https://updates-cdn.fakecorp.io/news.gif"
+      fields: {}
+    expected_detections:
+      - "search sourcetype=pan:traffic dst IN (IOC threat-intel feed)"
+      - "Beacon detection: regular interval connections to rare destination"
+
+  - order: 7
+    technique_id: T1567.002
+    technique_name: Exfiltration to Cloud Storage
+    tactic: exfiltration
+    engine: tabletop
+    payload:
+      sourcetype: pan:traffic
+      event_template: "{ts} src=10.10.10.42 dst=onedrive.live.com dport=443 bytes={exfil_bytes} url=https://onedrive.live.com/upload"
+      fields:
+        exfil_bytes: "104857600"
+    expected_detections:
+      - "search sourcetype=pan:traffic dst=*onedrive* bytes>50000000"
