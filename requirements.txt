@@ -1,0 +1,7 @@
+flask>=3.1
+flask-socketio>=5.4
+flask-cors>=4.0
+requests>=2.31
+python-dotenv>=1.0
+schedule>=1.2
+pyyaml>=6.0
