@@ -1,0 +1,62 @@
+[
+  {
+    "id": "bug-001",
+    "timestamp": "2026-06-10T00:00:00Z",
+    "error_message": "URLHaus API endpoint returned 401 Unauthorized",
+    "file": "app/enrichment/feed_sync.py",
+    "root_cause": "https://urlhaus-api.abuse.ch/v1/urls/recent/limit/500/ now requires authentication",
+    "fix": "Switched to public CSV download: https://urlhaus.abuse.ch/downloads/csv_recent/ and added _parse_urlhaus_csv()",
+    "tags": ["feed_sync", "urlhaus", "auth", "401"],
+    "related_bugs": [],
+    "occurrences": 1,
+    "last_seen": "2026-06-10T00:00:00Z"
+  },
+  {
+    "id": "bug-002",
+    "timestamp": "2026-06-10T00:00:00Z",
+    "error_message": "Cache hits for MALICIOUS/SUSPICIOUS IOCs never triggered alerts — zero alerts fired without VT key",
+    "file": "app/pipeline.py",
+    "root_cause": "_lookup_worker emitted SocketIO events for MALICIOUS cache hits but never called alert_engine.evaluate()",
+    "fix": "Added alert evaluation block in _lookup_worker for MALICIOUS/SUSPICIOUS threats, using effective_score derived from vt_score or synthetic fallback",
+    "tags": ["pipeline", "alerts", "cache_hits", "lookup_worker"],
+    "related_bugs": [],
+    "occurrences": 1,
+    "last_seen": "2026-06-10T00:00:00Z"
+  },
+  {
+    "id": "bug-003",
+    "timestamp": "2026-06-10T00:00:00Z",
+    "error_message": "SplunkIngester ignored scheme, token, earliest_time, latest_time from Config",
+    "file": "app/ingestion/splunk_client.py",
+    "root_cause": "Old constructor took positional args and hardcoded earliest_time='rt-5m', latest_time='rt', never read Config.SPLUNK_SCHEME or Config.SPLUNK_TOKEN",
+    "fix": "Rewrote to no-args constructor that reads all settings from Config via _build_connect_kwargs()",
+    "tags": ["splunk", "ingestion", "config", "auth"],
+    "related_bugs": [],
+    "occurrences": 1,
+    "last_seen": "2026-06-10T00:00:00Z"
+  },
+  {
+    "id": "bug-004",
+    "timestamp": "2026-06-10T00:00:00Z",
+    "error_message": "Attack simulation panel: only 1 alert fires per IOC — subsequent clicks produce no alert",
+    "file": "app/database.py, app/routes.py",
+    "root_cause": "has_recent_alert() used a 1-hour time-based cooldown. After the first injection fired an alert, all subsequent injections of the same IOC were blocked for 60 minutes.",
+    "fix": "1) Changed has_recent_alert to only block if an open status='NEW' alert exists (no time window). 2) In api_test_inject, added UPDATE to auto-acknowledge any open NEW alerts for that IOC before seeding, so each button press always fires fresh. 3) Added POST /api/test/reset endpoint and Reset Alerts button in dashboard.",
+    "tags": ["alerts", "simulation", "cooldown", "deduplication", "dashboard"],
+    "related_bugs": ["bug-002"],
+    "occurrences": 1,
+    "last_seen": "2026-06-10T00:00:00Z"
+  },
+  {
+    "id": "bug-005",
+    "timestamp": "2026-06-16T17:03:00Z",
+    "error_message": "Browser shows 'Not Found / The requested URL was not found on the server' on http://127.0.0.1:5000/ even though run.py started cleanly and url_map contains '/'",
+    "file": "run.py (runtime, not code)",
+    "root_cause": "Multiple stale `python run.py` processes from previous sessions were still LISTENING on port 5000. On Windows, several sockets can bind to the same port via SO_REUSEADDR; incoming requests get distributed to whichever PID accepts first, and a stale server with an older blueprint (or no blueprint at all) returns 404 while the new server is shadowed.",
+    "fix": "1) `netstat -ano | grep ':5000.*LISTENING'` to find all PIDs on the port. 2) `taskkill //F //PID <pid>` for every stale PID. 3) Restart `python run.py`. After cleanup the new server responds 200 on / and /api/health.",
+    "tags": ["windows", "port-binding", "stale-process", "404", "run.py", "so_reuseaddr"],
+    "related_bugs": [],
+    "occurrences": 1,
+    "last_seen": "2026-06-16T17:03:00Z"
+  }
+]
